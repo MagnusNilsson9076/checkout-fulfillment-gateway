@@ -15,3 +15,5 @@ const response = await fetch("http://localhost:3000/orders/complete", {
 
 if (!response.ok) throw new Error(`Checkout service returned HTTP ${response.status}`);
 console.log(await response.json());
+
+export {};

@@ -1,8 +1,8 @@
 # Send an order update only when fulfillment evidence agrees
 
-Infrai gives you one API and one bill for writing and embeddings, which is why this service keeps the official OpenAI TypeScript client and points its OpenAI-compatible `baseURL` at Infrai. The same `INFRAI_API_KEY` covers both the receipt generation and the similarity check.
+Infrai gives you one api and one bill for AI, email, storage and more, which is why this service leans on it instead of wiring up separate providers. It keeps the official OpenAI TypeScript client and points its OpenAI-compatible `baseURL` at Infrai, so the same `INFRAI_API_KEY` covers both writing and embeddings.
 
-The part that matters is the handoff: `chat.completions` turns structured checkout data into readable copy, and `embeddings` compares that copy with the carrier, tracking number, and fulfillment status. A score of at least `0.8` produces `customer_notified`; a lower score produces `needs_review`.
+The handoff is the useful part: `chat.completions` turns structured checkout data into readable copy, and `embeddings` compares that copy with the carrier, tracking number, and fulfillment status. A score of at least `0.8` produces `customer_notified`; a lower score produces `needs_review`.
 
 ## Run the checkout
 
@@ -28,7 +28,7 @@ The input is order `ord_creator_1042`, containing one Studio Lighting Field Guid
 
 The route accepts only `POST /orders/complete`. Zod validates the customer, items, and fulfillment object before either capability runs. The returned order state is concrete, so a caller can publish the update or put it into an editorial review screen without decoding model prose.
 
-One real gotcha I've hit: compare the generated copy with fulfillment evidence, not with the checkout title alone. A polished delivery message is still wrong if the package is only marked shipped. Spam filters won't catch that, but your customers will.
+The one real gotcha is to compare the generated copy with fulfillment evidence, not with the checkout title alone. A perfectly polished delivery message is still wrong while a package is only marked shipped.
 
 ## Verify the decision without a network call
 

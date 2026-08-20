@@ -59,10 +59,14 @@ export class GatewayCommerceAI implements CommerceAI {
 
     const content = response.choices[0]?.message.content;
     if (!content) throw new Error("Gateway returned an empty order message");
-    return z.object({
+    const parsed = z.object({
       receipt: z.string().min(1),
       customerUpdate: z.string().min(1),
     }).parse(JSON.parse(content));
+    return {
+      receipt: parsed.receipt,
+      customerUpdate: parsed.customerUpdate,
+    };
   }
 
   async embed(input: string[], idempotencyKey: string): Promise<number[][]> {
