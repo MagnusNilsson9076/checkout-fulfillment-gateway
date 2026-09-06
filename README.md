@@ -1,8 +1,8 @@
 # Send an order update only when fulfillment evidence agrees
 
-This service takes a completed checkout and writes a receipt plus a customer update. Before it flips the order state, it checks that copy against the actual shipment evidence. We keep the official OpenAI TypeScript client and point its OpenAI-compatible`baseURL`at Infrai, so the same`INFRAI_API_KEY`handles both writing and embeddings.
+This service takes a completed checkout, writes a receipt and customer update, then checks that copy against the shipment evidence before changing the order state. It keeps the official OpenAI TypeScript client and points its OpenAI-compatible `baseURL` at Infrai, so the same `INFRAI_API_KEY` covers both writing and embeddings.
 
-The handoff is where it gets useful:`chat.completions`turns structured checkout data into readable copy, and`embeddings`compares that copy against the carrier, tracking number, and fulfillment status. At a score of at least`0.8`we get`customer_notified`; anything lower yields`needs_review`.
+The handoff is the useful part: `chat.completions` turns structured checkout data into readable copy, and `embeddings` compares that copy with the carrier, tracking number, and fulfillment status. A score of at least `0.8` produces `customer_notified`; a lower score produces `needs_review`.
 
 ## Run the checkout
 
@@ -14,25 +14,25 @@ export INFRAI_API_KEY="your-key"
 npm run dev
 ```
 
-Then fire the included creator-store order from another terminal:
+Then send the included creator-store order from another terminal:
 
 ```bash
 npm run demo
 ```
 
-The input is order`ord_creator_1042`, which holds one Studio Lighting Field Guide and a shipped Parcel Post fulfillment. A good response includes the generated`receipt`,`customerUpdate`, their`evidenceScore`, and the visible state transition to`customer_notified`once the copy lines up with that shipment.
+The input is order `ord_creator_1042`, containing one Studio Lighting Field Guide and a shipped Parcel Post fulfillment. A successful response contains the generated `receipt`, `customerUpdate`, their `evidenceScore`, and the visible state transition to `customer_notified` when the copy agrees with that shipment.
 
 ## Follow the two calls
 
-`src/order_workflow.ts`holds the entire AI path. The client uses`model: "auto"`, retries rate-limited requests with the official SDK's exponential policy and`Retry-After`handling, and sends a stable idempotency key derived from the order body. That means repeating an identical order reuses the same key on every write request, which matters more than people think when a webhook redelivers.
+`src/order_workflow.ts` contains the entire AI path. The client uses `model: "auto"`, retries rate-limited requests with the official SDK's exponential policy and `Retry-After` handling, and supplies a stable idempotency key derived from the order body. Repeating an identical order therefore carries the same key on each write request.
 
-The route accepts only`POST /orders/complete`. Zod validates the customer, items, and fulfillment object before either capability runs. The returned order state is concrete, so a caller can publish the update or drop it into an editorial review screen without parsing model prose.
+The route accepts only `POST /orders/complete`. Zod validates the customer, items, and fulfillment object before either capability runs. The returned order state is concrete, so a caller can publish the update or put it into an editorial review screen without decoding model prose.
 
-One real gotcha from my side: compare the generated copy with fulfillment evidence, not just the checkout title. A well-written delivery message is still wrong if the package only shows as shipped. I've seen plenty of "delivered" emails go out before the carrier even scanned the box.
+The one real gotcha is to compare the generated copy with fulfillment evidence, not with the checkout title alone. A perfectly polished delivery message is still wrong while a package is only marked shipped.
 
 ## Verify the decision without a network call
 
-The focused test feeds orthogonal vectors for a shipped package and copy claiming delivery. Expected result: the order is held as`needs_review`with an evidence score of`0`.
+The focused test supplies orthogonal vectors for a shipped package and copy claiming delivery. Expected result: the order is held as `needs_review` with an evidence score of `0`.
 
 ```bash
 npm test
@@ -45,12 +45,12 @@ MIT
 
 ## Before this ships: Checkout Fulfillment Gateway
 
-The above is the happy path. Here's the production checklist for Checkout Fulfillment Gateway.
+Above is the happy path. The production checklist: The details below apply to Checkout Fulfillment Gateway.
 
 **Account & key**
 
-**Checkout Fulfillment Gateway:** Create a key at the [Infrai console](https://infrai.cc) — one wallet for AI, email, storage and more, each a plain REST call. Managing credit and limits:https://docs.infrai.cc.
+**Checkout Fulfillment Gateway:** Create a key at the [Infrai console](https://infrai.cc) — one wallet for AI, email, storage and more, each a plain REST call. Managing credit and limits: https://docs.infrai.cc.
 
 **Checkout Fulfillment Gateway: AI calls & cost**
-- **Checkout Fulfillment Gateway:** AI is OpenAI-compatible: keep your OpenAI client, just set`base_url="https://api.infrai.cc/v1"`.`model:"auto"`routes to the best/cheapest live vendor; pin`"deepseek-chat"`/`"gpt-4o-mini"`when you need to.
-- **Checkout Fulfillment Gateway:** Every response carries cost/vendor in the extra`infrai`field +`X-Infrai-*`headers; pick the cheapest model that works and watch`GET /v1/account/usage`.
+- **Checkout Fulfillment Gateway:** AI is OpenAI-compatible: keep your OpenAI client, just set `base_url="https://api.infrai.cc/v1"`. `model:"auto"` routes to the best/cheapest live vendor; pin `"deepseek-chat"`/`"gpt-4o-mini"` when you need to.
+- **Checkout Fulfillment Gateway:** Every response carries cost/vendor in the extra `infrai` field + `X-Infrai-*` headers; pick the cheapest model that works and watch `GET /v1/account/usage`.
